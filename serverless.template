@@ -1,0 +1,73 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "Payment Microservice",
+
+  "Resources": {
+
+    "PaymentsTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "Payments",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PaymentId",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "PaymentId",
+            "KeyType": "HASH"
+          }
+        ]
+      }
+    },
+
+    "PaymentQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "payment-queue",
+        "VisibilityTimeout": 60
+      }
+    },
+
+    "PaymentFunction": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "ms-payments::ms_payments.Functions.PaymentFunction::FunctionHandler",
+        "Runtime": "dotnet8",
+        "MemorySize": 512,
+        "Timeout": 30,
+
+        "Environment": {
+          "Variables": {
+            "PAYMENTS_TABLE": "Payments"
+          }
+        },
+
+        "Policies": [
+          "AWSLambdaBasicExecutionRole",
+          {
+            "DynamoDBCrudPolicy": {
+              "TableName": "Payments"
+            }
+          }
+        ],
+
+        "Events": {
+          "PaymentQueueTrigger": {
+            "Type": "SQS",
+            "Properties": {
+              "Queue": {
+                "Fn::GetAtt": [ "PaymentQueue", "Arn" ]
+              },
+              "BatchSize": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
