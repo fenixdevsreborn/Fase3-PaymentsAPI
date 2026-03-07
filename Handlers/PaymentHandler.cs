@@ -30,7 +30,7 @@ public class PaymentHandler
       catch (Exception ex)
       {
         Console.WriteLine($"Erro ao processar pagamento: {ex.Message}");
-        throw; 
+        throw;
       }
     }
   }
