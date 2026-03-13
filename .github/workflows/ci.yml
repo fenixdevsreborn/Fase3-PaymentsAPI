@@ -1,0 +1,44 @@
+# ------------------------------------------------------------------------------
+# CI — Payments API (FCG Cloud Platform)
+# Restore, build (Release) e testes. Use na raiz do repositório deste projeto.
+# ------------------------------------------------------------------------------
+
+name: CI
+
+on:
+  push:
+    branches: [junonn/mvp-aws]
+  pull_request:
+    branches: [junonn/mvp-aws]
+
+env:
+  DOTNET_VERSION: "10.0.x"
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore Fcg.Payments.slnx
+
+      - name: Build (Release)
+        run: dotnet build Fcg.Payments.slnx -c Release --no-restore
+
+      - name: Test (Release)
+        run: dotnet test Fcg.Payments.slnx -c Release --no-build --verbosity normal --logger "trx;LogFileName=results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/TestResults/*.trx"
