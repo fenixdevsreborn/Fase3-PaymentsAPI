@@ -36,14 +36,16 @@
     "PaymentFunction": {
       "Type": "AWS::Serverless::Function",
       "Properties": {
-        "Handler": "ms-payments::ms_payments.Functions.PaymentFunction::FunctionHandler",
+        "Handler": "ms-payments::ms_payments.Function::FunctionHandler",
         "Runtime": "dotnet8",
         "MemorySize": 512,
         "Timeout": 30,
 
         "Environment": {
           "Variables": {
-            "PAYMENTS_TABLE": "Payments"
+            "PAYMENTS_TABLE": "Payments",
+            "GAMES_QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/864899865331/games-queue",
+            "NOTIFICATION_QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/864899865331/notification-queue"
           }
         },
 
@@ -52,6 +54,16 @@
           {
             "DynamoDBCrudPolicy": {
               "TableName": "Payments"
+            }
+          },
+          {
+            "SQSSendMessagePolicy": {
+              "QueueName": "games-queue"
+            }
+          },
+          {
+            "SQSSendMessagePolicy": {
+              "QueueName": "notification-queue"
             }
           }
         ],

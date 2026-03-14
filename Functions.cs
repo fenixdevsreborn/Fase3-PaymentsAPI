@@ -4,18 +4,18 @@ using ms_payments.Handlers;
 
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
-namespace ms_payments.Functions;
+namespace ms_payments;
 
-public class PaymentFunction
+public class Function
 {
   private readonly PaymentHandler _handler;
 
-  public PaymentFunction()
+  public Function()
   {
     _handler = new PaymentHandler();
   }
 
-  public async Task FunctionHandler(SQSEvent evnt)
+  public async Task FunctionHandler(SQSEvent evnt, ILambdaContext context)
   {
     await _handler.HandleAsync(evnt);
   }

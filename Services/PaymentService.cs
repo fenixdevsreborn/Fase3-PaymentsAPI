@@ -16,15 +16,19 @@ public class PaymentService
 
   public async Task ProcessPaymentAsync(PurchaseRequestedEvent payment)
   {
+    var paymentId = new Guid();
+
     Console.WriteLine($@"==================================
       Novo pagamento recebido
       User: {payment.UserId}
+      Email: {payment.Email}
       Game: {payment.GameId}
-      Amount: {payment.Amount}");
+      Amount: {payment.Amount}
+      GameValue: {payment.GameValue}");
 
     await Task.Delay(1000);
 
-    var status = payment.Amount >= 100
+    var status = payment.Amount == payment.GameValue
         ? "APPROVED"
         : "REJECTED";
 
@@ -33,6 +37,7 @@ public class PaymentService
     var paymentProcessed = new PaymentProcessedEvent
     {
       UserId = payment.UserId,
+      Email = payment.Email,
       GameId = payment.GameId,
       Amount = payment.Amount,
       Status = status,
@@ -45,12 +50,12 @@ public class PaymentService
 
     var notificationEvent = new NotificationEvent
     {
-      Title = "Resultado da compra",
-      Subtitle = $"Compra do jogo {payment.GameId}",
+      Title = $"{payment.GameName}",
+      Subtitle = $"Id da compra {paymentId}",
       Body = status == "APPROVED"
-        ? "Seu pagamento foi aprovado!"
+        ? $"A compra no valor de R$ {payment.Amount} foi aprovada e o jogo {payment.GameName} foi adicionado a sua biblioteca de jogos"
         : "Seu pagamento foi recusado.",
-      Recipient = payment.UserId
+      Recipient = payment.Email
     };
 
     var notificationQueue = Environment.GetEnvironmentVariable("NOTIFICATION_QUEUE_URL");

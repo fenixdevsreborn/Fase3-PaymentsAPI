@@ -20,6 +20,11 @@ public class PaymentHandler
     {
       try
       {
+        if (string.IsNullOrWhiteSpace(record.Body))
+          throw new Exception("Mensagem SQS sem body.");
+
+        Console.WriteLine($"Body recebido: {record.Body}");
+
         var purchase = JsonSerializer.Deserialize<PurchaseRequestedEvent>(record.Body);
 
         if (purchase == null)
@@ -29,7 +34,7 @@ public class PaymentHandler
       }
       catch (Exception ex)
       {
-        Console.WriteLine($"Erro ao processar pagamento: {ex.Message}");
+        Console.WriteLine($"Erro ao processar pagamento: {ex}");
         throw;
       }
     }
