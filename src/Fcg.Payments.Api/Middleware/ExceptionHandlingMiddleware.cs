@@ -1,9 +1,12 @@
 using System.Net;
 using System.Text.Json;
+using Fcg.Payments.Api.Observability;
 using Fcg.Payments.Application.Exceptions;
+using Microsoft.AspNetCore.Http;
 
 namespace Fcg.Payments.Api.Middleware;
 
+/// <summary>Maps domain exceptions to HTTP JSON. Logs with TraceId and CorrelationId.</summary>
 public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -23,24 +26,30 @@ public class ExceptionHandlingMiddleware
         }
         catch (NotFoundException ex)
         {
-            _logger.LogWarning(ex, "Not found");
-            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = ex.Message })).ConfigureAwait(false);
+            _logger.LogWarning(ex, "Not found. {TraceId} {CorrelationId}", ObservabilityContext.GetCurrentTraceId(), ObservabilityContext.GetCurrentCorrelationId());
+            await WriteResponseAsync(context, (int)HttpStatusCode.NotFound, "Resource not found").ConfigureAwait(false);
         }
         catch (ConflictException ex)
         {
-            _logger.LogWarning(ex, "Conflict");
-            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = ex.Message })).ConfigureAwait(false);
+            _logger.LogWarning(ex, "Conflict. {TraceId} {CorrelationId}", ObservabilityContext.GetCurrentTraceId(), ObservabilityContext.GetCurrentCorrelationId());
+            await WriteResponseAsync(context, (int)HttpStatusCode.Conflict, "Conflict").ConfigureAwait(false);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Bad request. {TraceId} {CorrelationId}", ObservabilityContext.GetCurrentTraceId(), ObservabilityContext.GetCurrentCorrelationId());
+            await WriteResponseAsync(context, (int)HttpStatusCode.BadRequest, "Bad request").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception");
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = "An error occurred." })).ConfigureAwait(false);
+            _logger.LogError(ex, "Unhandled exception. {TraceId} {CorrelationId} {Message}", ObservabilityContext.GetCurrentTraceId(), ObservabilityContext.GetCurrentCorrelationId(), ex.Message);
+            await WriteResponseAsync(context, (int)HttpStatusCode.InternalServerError, "An error occurred.").ConfigureAwait(false);
         }
+    }
+
+    private static async Task WriteResponseAsync(HttpContext context, int statusCode, string message)
+    {
+        context.Response.StatusCode = statusCode;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(JsonSerializer.Serialize(new { message })).ConfigureAwait(false);
     }
 }

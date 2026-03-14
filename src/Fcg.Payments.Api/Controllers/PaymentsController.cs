@@ -1,5 +1,6 @@
-using Fcg.Shared.Auth;
-using Fcg.Shared.Observability;
+using Fcg.Payments.Api.Authentication;
+using Fcg.Payments.Api.Authorization;
+using Fcg.Payments.Api.Observability;
 using Fcg.Payments.Application.Exceptions;
 using Fcg.Payments.Application.Services;
 using Fcg.Payments.Contracts.Audit;
@@ -12,7 +13,7 @@ namespace Fcg.Payments.Api.Controllers;
 
 [ApiController]
 [Route("payments")]
-[Authorize]
+[Authorize(Policy = FcgPolicies.RequireAuthenticatedUser)]
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
@@ -88,7 +89,8 @@ public class PaymentsController : ControllerBase
             var payment = await _paymentService.ConfirmAsync(id, userId, isAdmin, request?.IdempotencyKey, cancellationToken).ConfigureAwait(false);
             if (payment is null)
                 return NotFound();
-            _meters.RecordPaymentPaid();
+            if (string.Equals(payment.Status, "Paid", StringComparison.OrdinalIgnoreCase))
+                _meters.RecordPaymentPaid();
             return Ok(payment);
         }
         catch (ConflictException ex)
@@ -110,7 +112,8 @@ public class PaymentsController : ControllerBase
             var payment = await _paymentService.FailAsync(id, userId, isAdmin, request?.FailureReason, request?.IdempotencyKey, cancellationToken).ConfigureAwait(false);
             if (payment is null)
                 return NotFound();
-            _meters.RecordPaymentFailed();
+            if (string.Equals(payment.Status, "Failed", StringComparison.OrdinalIgnoreCase))
+                _meters.RecordPaymentFailed();
             return Ok(payment);
         }
         catch (ConflictException ex)

@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\Fcg.Payments.Application\Fcg.Payments.Application.csproj" />
     <ProjectReference Include="..\..\src\Fcg.Payments.Contracts\Fcg.Payments.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Fcg.Payments.Domain\Fcg.Payments.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Fcg.Payments.Api\Fcg.Payments.Api.csproj" />
     <ProjectReference Include="..\..\src\Fcg.Payments.Infrastructure\Fcg.Payments.Infrastructure.csproj" />
   </ItemGroup>
 

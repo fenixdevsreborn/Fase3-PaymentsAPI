@@ -4,7 +4,7 @@ using Fcg.Payments.Contracts.Payments;
 using Fcg.Payments.Domain.Entities;
 using Fcg.Payments.Domain.Enums;
 using Fcg.Payments.Domain.Repositories;
-using Fcg.Shared.Observability;
+using Fcg.Payments.Application.Observability;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;

@@ -1,21 +1,27 @@
+using Fcg.Payments.Api.Extensions;
 using Fcg.Payments.Api.Middleware;
+using Fcg.Payments.Api.Observability;
 using Fcg.Payments.Application.Extensions;
 using Fcg.Payments.Infrastructure.Extensions;
-using Fcg.Shared.Auth;
-using Fcg.Shared.Observability;
+using Fcg.Payments.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddEnvironmentVariables();
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
-builder.Services.AddFcgJwtBearer(builder.Configuration);
-builder.Services.AddFcgAuthorization();
-builder.Services.AddProjectObservability(builder.Configuration, "Fcg.Payments.Api");
+builder.Services.AddPaymentsApiAuth(builder.Configuration);
+builder.Services.AddPaymentsApiObservability(builder.Configuration, "Fcg.Payments.Api");
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<Fcg.Payments.Infrastructure.Persistence.PaymentsDbContext>("db", tags: new[] { "ready" });
+    .AddDbContextCheck<PaymentsDbContext>("db", tags: new[] { "ready" });
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<Fcg.Payments.Api.OpenApi.BearerSecuritySchemeTransformer>();
@@ -23,15 +29,15 @@ builder.Services.AddOpenApi(options =>
 
 var app = builder.Build();
 
-app.UseFcgObservability();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseFcgObservability();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.MapHealthChecks("/health");
-app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 
 var enableOpenApi = !app.Environment.IsProduction() || app.Configuration.GetValue<bool>("EnableOpenApi");
 if (enableOpenApi)

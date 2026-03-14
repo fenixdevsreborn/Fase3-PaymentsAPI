@@ -21,8 +21,6 @@
     <ProjectReference Include="..\Fcg.Payments.Application\Fcg.Payments.Application.csproj" />
     <ProjectReference Include="..\Fcg.Payments.Infrastructure\Fcg.Payments.Infrastructure.csproj" />
     <ProjectReference Include="..\Fcg.Payments.Contracts\Fcg.Payments.Contracts.csproj" />
-    <ProjectReference Include="..\..\..\Fase3-Shared\src\Fcg.Shared.Auth\Fcg.Shared.Auth.csproj" />
-    <ProjectReference Include="..\..\..\Fase3-Shared\src\Fcg.Shared.Observability.AspNetCore\Fcg.Shared.Observability.AspNetCore.csproj" />
   </ItemGroup>
 
 </Project>

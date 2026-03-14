@@ -7,13 +7,9 @@ COPY Fase3-PaymentsAPI/src/Fcg.Payments.Application/Fcg.Payments.Application.csp
 COPY Fase3-PaymentsAPI/src/Fcg.Payments.Contracts/Fcg.Payments.Contracts.csproj Fase3-PaymentsAPI/src/Fcg.Payments.Contracts/
 COPY Fase3-PaymentsAPI/src/Fcg.Payments.Domain/Fcg.Payments.Domain.csproj Fase3-PaymentsAPI/src/Fcg.Payments.Domain/
 COPY Fase3-PaymentsAPI/src/Fcg.Payments.Infrastructure/Fcg.Payments.Infrastructure.csproj Fase3-PaymentsAPI/src/Fcg.Payments.Infrastructure/
-COPY Fase3-Shared/src/Fcg.Shared.Auth/Fcg.Shared.Auth.csproj Fase3-Shared/src/Fcg.Shared.Auth/
-COPY Fase3-Shared/src/Fcg.Shared.Observability.AspNetCore/Fcg.Shared.Observability.AspNetCore.csproj Fase3-Shared/src/Fcg.Shared.Observability.AspNetCore/
-COPY Fase3-Shared/src/Fcg.Shared.Observability/Fcg.Shared.Observability.csproj Fase3-Shared/src/Fcg.Shared.Observability/
 
 RUN dotnet restore Fase3-PaymentsAPI/src/Fcg.Payments.Api/Fcg.Payments.Api.csproj
 COPY Fase3-PaymentsAPI/src Fase3-PaymentsAPI/src
-COPY Fase3-Shared Fase3-Shared
 RUN dotnet publish Fase3-PaymentsAPI/src/Fcg.Payments.Api/Fcg.Payments.Api.csproj -c Release -o /app/publish --no-restore
 
 # Runtime
