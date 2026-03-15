@@ -6,46 +6,46 @@ using Fcg.Payments.Domain.Enums;
 using Fcg.Payments.Domain.Repositories;
 using Fcg.Payments.Application.Observability;
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
 using Xunit;
 
 namespace Fcg.Payments.UnitTests.Services;
 
 public class PaymentServiceTests
 {
-    private readonly Mock<IPaymentRepository> _paymentRepo = new();
-    private readonly Mock<IAuditLogRepository> _auditRepo = new();
-    private readonly Mock<IOutboxRepository> _outboxRepo = new();
-    private readonly Mock<IPaymentGateway> _gateway = new();
-    private readonly Mock<IEventPublisher> _eventPublisher = new();
-    private readonly Mock<IGameApiClient> _gameClient = new();
-    private readonly Mock<IUserInfoService> _userInfo = new();
-    private readonly Mock<IIdempotencyStore> _idempotency = new();
-    private readonly Mock<IObservabilityContextAccessor> _observability = new();
-    private readonly Mock<ILogger<PaymentService>> _logger = new();
+    private readonly IPaymentRepository _paymentRepo = Substitute.For<IPaymentRepository>();
+    private readonly IAuditLogRepository _auditRepo = Substitute.For<IAuditLogRepository>();
+    private readonly IOutboxRepository _outboxRepo = Substitute.For<IOutboxRepository>();
+    private readonly IPaymentGateway _gateway = Substitute.For<IPaymentGateway>();
+    private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
+    private readonly IGameApiClient _gameClient = Substitute.For<IGameApiClient>();
+    private readonly IUserInfoService _userInfo = Substitute.For<IUserInfoService>();
+    private readonly IIdempotencyStore _idempotency = Substitute.For<IIdempotencyStore>();
+    private readonly IObservabilityContextAccessor _observability = Substitute.For<IObservabilityContextAccessor>();
+    private readonly ILogger<PaymentService> _logger = Substitute.For<ILogger<PaymentService>>();
 
     private PaymentService CreateSut()
     {
-        _observability.Setup(x => x.TraceId).Returns((string?)null);
-        _observability.Setup(x => x.CorrelationId).Returns((string?)null);
+        _observability.TraceId.Returns((string?)null);
+        _observability.CorrelationId.Returns((string?)null);
         return new PaymentService(
-            _paymentRepo.Object,
-            _auditRepo.Object,
-            _outboxRepo.Object,
-            _gateway.Object,
-            _eventPublisher.Object,
-            _gameClient.Object,
-            _userInfo.Object,
-            _idempotency.Object,
-            _observability.Object,
-            _logger.Object);
+            _paymentRepo,
+            _auditRepo,
+            _outboxRepo,
+            _gateway,
+            _eventPublisher,
+            _gameClient,
+            _userInfo,
+            _idempotency,
+            _observability,
+            _logger);
     }
 
     [Fact]
     public async Task CreateAsync_WhenGameNotFound_ThrowsNotFoundException()
     {
-        _gameClient.Setup(x => x.GetGameAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((GameInfo?)null);
+        _gameClient.GetGameAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((GameInfo?)null);
         var sut = CreateSut();
         var request = new CreatePaymentRequest { GameId = Guid.NewGuid(), Currency = "BRL" };
 
@@ -57,14 +57,16 @@ public class PaymentServiceTests
     {
         var userId = Guid.NewGuid();
         var gameId = Guid.NewGuid();
-        _paymentRepo.Setup(x => x.GetPendingByUserAndGameAsync(userId, gameId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Payment { Id = Guid.NewGuid(), UserId = userId, GameId = gameId, Status = PaymentStatus.Pending });
+        _paymentRepo.GetPendingByUserAndGameAsync(userId, gameId, Arg.Any<CancellationToken>())
+            .Returns(new Payment { Id = Guid.NewGuid(), UserId = userId, GameId = gameId, Status = PaymentStatus.Pending });
 
         var sut = CreateSut();
         var request = new CreatePaymentRequest { GameId = gameId, Currency = "BRL" };
 
         await Assert.ThrowsAsync<ConflictException>(() => sut.CreateAsync(userId, request, default));
-        _gameClient.Verify(x => x.GetGameAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+#pragma warning disable CS4014
+        _gameClient.DidNotReceive().GetGameAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -72,16 +74,20 @@ public class PaymentServiceTests
     {
         var userId = Guid.NewGuid();
         var gameId = Guid.NewGuid();
-        _paymentRepo.Setup(x => x.GetPendingByUserAndGameAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Payment?)null);
-        _gameClient.Setup(x => x.GetGameAsync(gameId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GameInfo(gameId, "Game", 29.99m, true));
-        _gateway.Setup(x => x.AuthorizeAsync(It.IsAny<Guid>(), 29.99m, "BRL", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GatewayResult(true, "ref-1", null));
+        _paymentRepo.GetPendingByUserAndGameAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((Payment?)null);
+        _gameClient.GetGameAsync(gameId, Arg.Any<CancellationToken>())
+            .Returns(new GameInfo(gameId, "Game", 29.99m, true));
+        _gateway.AuthorizeAsync(Arg.Any<Guid>(), 29.99m, "BRL", Arg.Any<CancellationToken>())
+            .Returns(new GatewayResult(true, "ref-1", null));
         Payment? captured = null;
-        _paymentRepo.Setup(x => x.AddAsync(It.IsAny<Payment>(), It.IsAny<CancellationToken>()))
-            .Callback<Payment, CancellationToken>((p, _) => captured = p)
-            .ReturnsAsync((Payment p, CancellationToken _) => p);
+        _paymentRepo.AddAsync(Arg.Any<Payment>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                var p = (Payment)callInfo[0];
+                captured = p;
+                return p;
+            });
 
         var sut = CreateSut();
         var request = new CreatePaymentRequest { GameId = gameId, Currency = "BRL" };
@@ -101,8 +107,8 @@ public class PaymentServiceTests
         var paymentId = Guid.NewGuid();
         var ownerId = Guid.NewGuid();
         var otherUserId = Guid.NewGuid();
-        _paymentRepo.Setup(x => x.GetByIdAsync(paymentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Payment { Id = paymentId, UserId = ownerId });
+        _paymentRepo.GetByIdAsync(paymentId, Arg.Any<CancellationToken>())
+            .Returns(new Payment { Id = paymentId, UserId = ownerId });
 
         var sut = CreateSut();
         var result = await sut.GetByIdAsync(paymentId, otherUserId, false, default);
@@ -115,8 +121,8 @@ public class PaymentServiceTests
     {
         var paymentId = Guid.NewGuid();
         var ownerId = Guid.NewGuid();
-        _paymentRepo.Setup(x => x.GetByIdAsync(paymentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Payment { Id = paymentId, UserId = ownerId, Status = PaymentStatus.Pending });
+        _paymentRepo.GetByIdAsync(paymentId, Arg.Any<CancellationToken>())
+            .Returns(new Payment { Id = paymentId, UserId = ownerId, Status = PaymentStatus.Pending });
 
         var sut = CreateSut();
         var result = await sut.GetByIdAsync(paymentId, Guid.NewGuid(), true, default);
@@ -131,14 +137,16 @@ public class PaymentServiceTests
         var paymentId = Guid.NewGuid();
         var userId = Guid.NewGuid();
         var payment = new Payment { Id = paymentId, UserId = userId, Status = PaymentStatus.Paid };
-        _paymentRepo.Setup(x => x.GetByIdAsync(paymentId, It.IsAny<CancellationToken>())).ReturnsAsync(payment);
+        _paymentRepo.GetByIdAsync(paymentId, Arg.Any<CancellationToken>()).Returns(payment);
 
         var sut = CreateSut();
         var result = await sut.ConfirmAsync(paymentId, userId, false, null, default);
 
         Assert.NotNull(result);
         Assert.Equal("Paid", result.Status);
-        _gateway.Verify(x => x.CaptureAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+#pragma warning disable CS4014
+        _gateway.DidNotReceive().CaptureAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -146,8 +154,8 @@ public class PaymentServiceTests
     {
         var paymentId = Guid.NewGuid();
         var ownerId = Guid.NewGuid();
-        _paymentRepo.Setup(x => x.GetByIdAsync(paymentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Payment { Id = paymentId, UserId = ownerId });
+        _paymentRepo.GetByIdAsync(paymentId, Arg.Any<CancellationToken>())
+            .Returns(new Payment { Id = paymentId, UserId = ownerId });
 
         var sut = CreateSut();
         var result = await sut.FailAsync(paymentId, Guid.NewGuid(), false, "reason", null, default);

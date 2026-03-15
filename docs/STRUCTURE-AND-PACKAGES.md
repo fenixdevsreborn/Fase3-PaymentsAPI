@@ -11,7 +11,9 @@ Fase3-PaymentsAPI/
 │   │   │   ├── FcgRoles.cs
 │   │   │   ├── FcgPolicies.cs
 │   │   │   ├── JwtOptions.cs
-│   │   │   └── JwtBearerExtensions.cs
+│   │   │   ├── JwtBearerExtensions.cs
+│   │   │   ├── JwtBearerPostConfigureOptions.cs
+│   │   │   └── IBackchannelHttpHandlerFactory.cs
 │   │   ├── Authorization/
 │   │   │   ├── AuthorizationExtensions.cs
 │   │   │   ├── UserClaimsExtensions.cs
@@ -51,6 +53,7 @@ Fase3-PaymentsAPI/
 │           └── PaymentNotificationEvent.cs       # Payload padronizado para e-mail (TraceId, CorrelationId)
 ├── tests/
 └── docs/
+    ├── JWT-AUTHENTICATION.md   # Trust model Users API → Payments API, Authority + JWKS, env vars
     └── STRUCTURE-AND-PACKAGES.md
 ```
 
@@ -85,4 +88,4 @@ dotnet add package Microsoft.Extensions.Logging.Abstractions --version 10.0.0
 
 **Fcg.Payments.Infrastructure:** (conforme csproj existente: EF Core, AWS SDK, Polly, etc.)
 
-Nenhum pacote do Fase3-Shared é necessário. JWT validado com a mesma chave/issuer/audience da Users API.
+Nenhum pacote do Fase3-Shared é necessário. JWT é validado via **Authority** (Users API) e **JWKS** (RS256). Ver [JWT-AUTHENTICATION.md](JWT-AUTHENTICATION.md).

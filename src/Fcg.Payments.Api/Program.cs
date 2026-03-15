@@ -14,10 +14,11 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddApplication();
 builder.Services.AddPaymentsApiAuth(builder.Configuration);
 builder.Services.AddPaymentsApiObservability(builder.Configuration, "Fcg.Payments.Api");
+builder.Services.AddOpenTelemetryObservability(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHealthChecks()

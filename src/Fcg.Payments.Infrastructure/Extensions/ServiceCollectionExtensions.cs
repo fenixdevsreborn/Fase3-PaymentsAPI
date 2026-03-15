@@ -1,4 +1,3 @@
-using System.Net;
 using Amazon.SQS;
 using Fcg.Payments.Application.Services;
 using Fcg.Payments.Domain.Repositories;
@@ -11,18 +10,26 @@ using Fcg.Payments.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Polly;
-using Polly.Extensions.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http.Resilience;
 
 namespace Fcg.Payments.Infrastructure.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? hostEnvironment = null)
     {
-        var conn = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Database=fcg_payments;Username=postgres;Password=postgres";
-        services.AddDbContext<PaymentsDbContext>(o => o.UseNpgsql(conn));
+        var useInMemory = configuration.GetValue<bool>("UseInMemoryDatabase")
+            || string.Equals(hostEnvironment?.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
+
+        if (useInMemory)
+            services.AddDbContext<PaymentsDbContext>(o => o.UseInMemoryDatabase("FcgPaymentsTests"));
+        else
+        {
+            var conn = configuration.GetConnectionString("DefaultConnection")
+                ?? "Host=localhost;Database=fcg_payments;Username=postgres;Password=postgres";
+            services.AddDbContext<PaymentsDbContext>(o => o.UseNpgsql(conn));
+        }
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
@@ -47,17 +54,15 @@ public static class ServiceCollectionExtensions
             c.BaseAddress = new Uri(gamesBaseUrl.TrimEnd('/') + "/");
             c.Timeout = TimeSpan.FromSeconds(10);
         })
-            .AddPolicyHandler(GetGamesRetryPolicy())
-            .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(10)));
+            .AddStandardResilienceHandler(options =>
+            {
+                options.Retry.MaxRetryAttempts = 3;
+                options.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
+                options.Retry.UseJitter = true;
+                options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(10);
+                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(10);
+            });
 
         return services;
-    }
-
-    private static IAsyncPolicy<HttpResponseMessage> GetGamesRetryPolicy()
-    {
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .OrResult(r => r.StatusCode == HttpStatusCode.RequestTimeout || r.StatusCode == HttpStatusCode.GatewayTimeout)
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(1.5, retryAttempt)));
     }
 }

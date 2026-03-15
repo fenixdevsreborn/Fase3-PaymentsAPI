@@ -11,7 +11,8 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddPaymentsApiAuth(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddFcgJwtBearer(configuration);
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddFcgJwtBearer();
         services.AddFcgAuthorization();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
