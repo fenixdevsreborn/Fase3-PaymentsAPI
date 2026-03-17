@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
-# Publicar imagem Docker no ECR e disparar Fase3-InfraOrchestrador.
-# Use quando este projeto for a raiz do repositório. Serviço: payments-api.
+# Publish image — Build e push da imagem (Postgres + API) no ECR.
+# Apenas publicação no ECR; sem trigger para orquestrador/infra.
 # ------------------------------------------------------------------------------
 
 name: Publish image
@@ -21,9 +21,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    outputs:
-      image_uri: ${{ steps.meta.outputs.tags }}
-      image_tag: ${{ steps.meta.outputs.image_tag }}
 
     steps:
       - name: Checkout
@@ -48,26 +45,7 @@ jobs:
           echo "image_tag=payments-api:payments-api-latest" >> $GITHUB_OUTPUT
 
       - name: Build image
-        run: docker build -f Dockerfile -t ${{ steps.meta.outputs.tags }} .
+        run: docker build -f Dockerfile.postgres -t ${{ steps.meta.outputs.tags }} .
 
       - name: Push image
         run: docker push ${{ steps.meta.outputs.tags }}
-
-  trigger-orchestrator:
-    name: Trigger infra orchestrator
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Fase3-InfraOrchestrador
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.ORCHESTRATOR_REPO_TOKEN }}
-          repository: ${{ vars.ORCHESTRATOR_REPO }}
-          event-type: deploy-request
-          client-payload: |
-            {
-              "service_name": "${{ env.SERVICE_NAME }}",
-              "image_tag": "${{ needs.build-and-push.outputs.image_tag }}",
-              "commit_sha": "${{ github.sha }}",
-              "environment": "${{ vars.ENVIRONMENT }}"
-            }

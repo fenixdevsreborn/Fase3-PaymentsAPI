@@ -48,7 +48,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.Configure<GamesApiOptions>(configuration.GetSection(GamesApiOptions.SectionName));
-        var gamesBaseUrl = configuration["GamesApi:BaseUrl"] ?? "http://localhost:5001";
+        var gamesBaseUrl = configuration["GamesApi:BaseUrl"] ?? "http://games-api:8080";
         services.AddHttpClient<IGameApiClient, GameApiClient>(c =>
         {
             c.BaseAddress = new Uri(gamesBaseUrl.TrimEnd('/') + "/");

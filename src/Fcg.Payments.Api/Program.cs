@@ -5,6 +5,7 @@ using Fcg.Payments.Application.Extensions;
 using Fcg.Payments.Infrastructure.Extensions;
 using Fcg.Payments.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,6 +59,19 @@ app.MapGet("/api/discovery", (HttpContext ctx) => new
     docsUrl = $"{ctx.Request.PathBase.Value?.TrimEnd('/')}/scalar/v1",
     healthUrl = $"{ctx.Request.PathBase.Value?.TrimEnd('/')}/health"
 }).AllowAnonymous();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PaymentsDbContext>();
+    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    if (!config.GetValue<bool>("UseInMemoryDatabase"))
+    {
+        var connectionString = config.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
+        await PostgresDatabaseEnsurer.EnsureExistsAsync(connectionString);
+        await db.Database.MigrateAsync();
+    }
+}
 
 app.Run();
 
