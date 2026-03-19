@@ -13,13 +13,12 @@ O arquivo **`.github/workflows/deploy.yml`** está configurado para **paymentsap
 - **Testes:** `dotnet restore` → `dotnet build` → `dotnet test` em `Fcg.Payments.slnx`
 - **Imagem:** build com `Dockerfile.postgres`, tag = `github.sha`
 - **ECR:** repositório `fcg-fenix-paymentsapi-ecr`
-- **Deploy:** chama o reusable do repo de infra com `aws_region`, `environment`, `service`, `repository`, `image_tag`
+- **Deploy:** chama o reusable do repo de infra (`fenixdevsreborn/Fase3-InfraOrchestrador/.github/workflows/deploy-ec2.yml@master`) com `aws_region`, `environment`, `service`, `repository`, `image_tag` (`service` e o `uses:` são literais no YAML, como em UsersAPI e GamesAPI).
 
 **Variáveis de repositório necessárias:**
 
 | Variável      | Exemplo                         | Uso |
 |---------------|----------------------------------|-----|
-| `INFRA_REPO`  | `sua-org/Fase3-InfraOrchestrador` | Repositório que contém o reusable `deploy-ec2.yml` (owner/repo). |
 | `AWS_REGION`  | `us-east-1`                     | Região AWS (opcional; default us-east-1). |
 
 **Secrets:**
@@ -37,7 +36,7 @@ Os repositórios **UsersAPI** e **GamesAPI** seguem o mesmo padrão; apenas muda
 - **Users:** `SERVICE=usersapi`, `ECR_REPOSITORY_NAME=fcg-fenix-usersapi-ecr`, solution `Fcg.Users.slnx`
 - **Games:** `SERVICE=gamesapi`, `ECR_REPOSITORY_NAME=fcg-fenix-gamesapi-ecr`, solution `Fcg.Games.slnx`
 
-As variáveis `INFRA_REPO` e `AWS_REGION` e o secret `AWS_ROLE_ARN` são os mesmos nos três repositórios.
+As variáveis `AWS_REGION` e o secret `AWS_ROLE_ARN` são os mesmos nos três repositórios (o caminho do reusable de infra é fixo no `deploy.yml`, igual aos outros projetos).
 
 ---
 
