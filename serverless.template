@@ -40,6 +40,7 @@
         "Runtime": "dotnet8",
         "MemorySize": 512,
         "Timeout": 30,
+        "Tracing": "Active",
 
         "Environment": {
           "Variables": {
@@ -65,6 +66,19 @@
             "SQSSendMessagePolicy": {
               "QueueName": "notification-queue"
             }
+          },
+          "AmazonSQSFullAccess",
+          {
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "xray:PutTraceSegments",
+                  "xray:PutTelemetryRecords"
+                ],
+                "Resource": "*"
+              }
+            ]
           }
         ],
 
