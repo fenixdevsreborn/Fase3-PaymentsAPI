@@ -6,6 +6,8 @@
 
     public string UserId { get; set; }
 
+    public string PaymentId { get; set; }
+
     public string Email { get; set; }
 
     public string GameId { get; set; }
