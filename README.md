@@ -1,69 +1,158 @@
-# ASP.NET Core Web API Serverless Application
+# 💳 Payments API - Fase 3 (MVP AWS)
 
-This project shows how to run an ASP.NET Core Web API project as an AWS Lambda exposed through Amazon API Gateway. The NuGet package [Amazon.Lambda.AspNetCoreServer](https://www.nuget.org/packages/Amazon.Lambda.AspNetCoreServer) contains a Lambda function that is used to translate requests from API Gateway into the ASP.NET Core framework and then the responses from ASP.NET Core back to API Gateway.
+## 📌 Visão Geral
 
+A **Payments API** é um microsserviço responsável pelo processamento e gerenciamento de pagamentos dentro do ecossistema da Fase 3.
 
-For more information about how the Amazon.Lambda.AspNetCoreServer package works and how to extend its behavior view its [README](https://github.com/aws/aws-lambda-dotnet/blob/master/Libraries/src/Amazon.Lambda.AspNetCoreServer/README.md) file in GitHub.
+Projetada com uma abordagem **serverless e cloud-native na AWS**, a API garante alta escalabilidade, resiliência e desacoplamento, permitindo integração eficiente com outros serviços da plataforma, como Users, Games e Notifications.
 
+Este serviço representa a camada financeira do sistema, sendo crítico para operações transacionais.
 
-### Configuring for API Gateway HTTP API ###
+---
 
-API Gateway supports the original REST API and the new HTTP API. In addition HTTP API supports 2 different
-payload formats. When using the 2.0 format the base class of `LambdaEntryPoint` must be `Amazon.Lambda.AspNetCoreServer.APIGatewayHttpApiV2ProxyFunction`.
-For the 1.0 payload format the base class is the same as REST API which is `Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction`.
-**Note:** when using the `AWS::Serverless::Function` CloudFormation resource with an event type of `HttpApi` the default payload
-format is 2.0 so the base class of `LambdaEntryPoint` must be `Amazon.Lambda.AspNetCoreServer.APIGatewayHttpApiV2ProxyFunction`.
+## 🎯 Objetivo
 
+* Processar e registrar transações de pagamento
+* Garantir consistência e rastreabilidade das operações
+* Integrar dados financeiros com outros microsserviços
+* Suportar crescimento com escalabilidade automática
 
-### Configuring for Application Load Balancer ###
+---
 
-To configure this project to handle requests from an Application Load Balancer instead of API Gateway change
-the base class of `LambdaEntryPoint` from `Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction` to 
-`Amazon.Lambda.AspNetCoreServer.ApplicationLoadBalancerFunction`.
+## 🏗️ Arquitetura
 
-### Project Files ###
+A aplicação segue o padrão de **Arquitetura Hexagonal (Ports & Adapters)**, garantindo isolamento entre regras de negócio e infraestrutura.
 
-* serverless.template - an AWS CloudFormation Serverless Application Model template file for declaring your Serverless functions and other AWS resources
-* aws-lambda-tools-defaults.json - default argument settings for use with Visual Studio and command line deployment tools for AWS
-* LambdaEntryPoint.cs - class that derives from **Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFunction**. The code in 
-this file bootstraps the ASP.NET Core hosting framework. The Lambda function is defined in the base class.
-Change the base class to **Amazon.Lambda.AspNetCoreServer.ApplicationLoadBalancerFunction** when using an 
-Application Load Balancer.
-* LocalEntryPoint.cs - for local development this contains the executable Main function which bootstraps the ASP.NET Core hosting framework with Kestrel, as for typical ASP.NET Core applications.
-* Startup.cs - usual ASP.NET Core Startup class used to configure the services ASP.NET Core will use.
-* appsettings.json - used for local development.
-* Controllers\ValuesController - example Web API controller
+### 🔹 Camadas
 
-You may also have a test project depending on the options selected.
+* **Domain**
 
-## Here are some steps to follow from Visual Studio:
+  * Entidades de pagamento
+  * Regras de negócio (ex: validação de transações)
+  * Interfaces (ports)
 
-To deploy your Serverless application, right click the project in Solution Explorer and select *Publish to AWS Lambda*.
+* **Application**
 
-To view your deployed application open the Stack View window by double-clicking the stack name shown beneath the AWS CloudFormation node in the AWS Explorer tree. The Stack View also displays the root URL to your published application.
+  * Casos de uso (ProcessPayment, GetPayment, etc.)
+  * Orquestração de fluxos transacionais
 
-## Here are some steps to follow to get started from the command line:
+* **Infrastructure**
 
-Once you have edited your template and code you can deploy your application using the [Amazon.Lambda.Tools Global Tool](https://github.com/aws/aws-extensions-for-dotnet-cli#aws-lambda-amazonlambdatools) from the command line.
+  * Persistência (DynamoDB)
+  * Integrações externas (gateways de pagamento, se aplicável)
 
-Install Amazon.Lambda.Tools Global Tools if not already installed.
+* **API (EntryPoint)**
+
+  * AWS Lambda handlers
+  * Endpoints expostos via API Gateway
+
+---
+
+## ☁️ Infraestrutura AWS
+
+O serviço utiliza componentes gerenciados da AWS para garantir alta disponibilidade:
+
+* **AWS Lambda**
+
+  * Execução dos fluxos de pagamento
+
+* **Amazon API Gateway**
+
+  * Exposição dos endpoints HTTP
+
+* **Amazon DynamoDB**
+
+  * Armazenamento das transações
+
+* **AWS IAM**
+
+  * Controle de permissões
+
+* **AWS CloudWatch**
+
+  * Logs, auditoria e monitoramento
+
+---
+
+## 🔗 Funcionalidades
+
+* 💳 Registro de pagamentos
+* 📄 Consulta de transações
+* 🔍 Busca por usuário ou status
+* ❌ Cancelamento de pagamento (quando aplicável)
+* 📊 Rastreamento de status (pendente, aprovado, recusado)
+
+---
+
+## 🔐 Segurança e Consistência
+
+Por se tratar de um domínio financeiro, algumas preocupações são fundamentais:
+
+* Validação rigorosa de entrada
+* Idempotência em operações críticas
+* Controle de acesso via IAM
+* Logging para auditoria
+* Possível integração com serviços externos de pagamento
+
+💡 Em cenários reais, integrações com provedores como Stripe, PayPal ou adquirentes são comuns.
+
+---
+
+## 🚀 Stack Tecnológica
+
+* **.NET 8**
+* **C#**
+* **AWS Lambda**
+* **API Gateway**
+* **DynamoDB**
+* **xUnit + Moq**
+
+---
+
+## ⚙️ Execução do Projeto
+
+### 🔧 Pré-requisitos
+
+* .NET 8 SDK
+* AWS CLI configurado
+* Conta AWS ativa
+* Amazon Lambda Tools
+
+---
+
+### ▶️ Execução local
+
+```bash id="9vxf8z"
+dotnet restore
+dotnet build
+dotnet run
 ```
-    dotnet tool install -g Amazon.Lambda.Tools
+
+---
+
+### ☁️ Deploy na AWS
+
+```bash id="g7k8o9"
+dotnet lambda deploy-serverless
 ```
 
-If already installed check if new version is available.
-```
-    dotnet tool update -g Amazon.Lambda.Tools
+## 📦 Estrutura do Projeto
+
+```bash id="8wr03t"
+src/
+ ├── Domain/
+ ├── Application/
+ ├── Infrastructure/
+ ├── API/
+ └── Shared/
 ```
 
-Execute unit tests
-```
-    cd "ms-payments/test/ms-payments.Tests"
-    dotnet test
-```
+---
 
-Deploy application
-```
-    cd "ms-payments/src/ms-payments"
-    dotnet lambda deploy-serverless
-```
+## 🔄 Integração com o Ecossistema
+
+A Payments API se integra diretamente com:
+
+* 👤 Users API → identificação do pagador
+* 🎮 Games API → compra de jogos / itens
+* 🔔 Notifications API → envio de status de pagamento
