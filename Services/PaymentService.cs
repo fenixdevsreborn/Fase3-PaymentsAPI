@@ -1,5 +1,8 @@
 ﻿using ms_payments.Events;
 using ms_payments.Messaging;
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
+using ms_payments.Models;
 using Amazon.SQS;
 
 namespace ms_payments.Services;
@@ -7,16 +10,20 @@ namespace ms_payments.Services;
 public class PaymentService
 {
   private readonly EventPublisher _publisher;
+  private readonly DynamoDBContext _context;
 
   public PaymentService()
   {
     var sqs = new AmazonSQSClient();
+    var dynamo = new AmazonDynamoDBClient();
+
     _publisher = new EventPublisher(sqs);
+    _context = new DynamoDBContext(dynamo);
   }
 
   public async Task ProcessPaymentAsync(PurchaseRequestedEvent payment)
   {
-    var paymentId = new Guid();
+    var paymentId = Guid.NewGuid().ToString();
 
     Console.WriteLine($@"==================================
       Novo pagamento recebido
@@ -37,6 +44,7 @@ public class PaymentService
     var paymentProcessed = new PaymentProcessedEvent
     {
       UserId = payment.UserId,
+      PaymentId = paymentId,
       Email = payment.Email,
       GameId = payment.GameId,
       Amount = payment.Amount,
@@ -61,5 +69,19 @@ public class PaymentService
     var notificationQueue = Environment.GetEnvironmentVariable("NOTIFICATION_QUEUE_URL");
 
     await _publisher.PublishAsync(notificationQueue, notificationEvent);
+
+    var paymentEntity = new Payment
+    {
+      PaymentId = paymentId,
+      UserId = payment.UserId,
+      GameId = payment.GameId,
+      Email = payment.Email,
+      Amount = payment.Amount,
+      GameValue = payment.GameValue,
+      Status = status,
+      CreatedAt = DateTime.UtcNow
+    };
+
+    await _context.SaveAsync(paymentEntity);
   }
 }
